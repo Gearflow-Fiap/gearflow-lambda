@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /auth/generate-token",
+  "rawPath": "/auth/generate-token",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/auth/generate-token"
+    }
+  },
+  "body": "{\"clientId\":\"11111111-1111-1111-1111-111111111111\",\"email\":\"cliente@gearflow.com\",\"userName\":\"cliente\"}",
+  "isBase64Encoded": false
+}

@@ -1,0 +1,13 @@
+{
+  "Information": [
+    "Perfil e região são configurados no deploy (CLI/Terraform).",
+    "Handler apontado pelo Terraform: GearFlow.Lambda.ValidateCpf::GearFlow.Lambda.ValidateCpf.Function::FunctionHandler"
+  ],
+  "profile": "",
+  "region": "us-east-1",
+  "configuration": "Release",
+  "function-runtime": "dotnet8",
+  "function-memory-size": 256,
+  "function-timeout": 30,
+  "function-handler": "GearFlow.Lambda.ValidateCpf::GearFlow.Lambda.ValidateCpf.Function::FunctionHandler"
+}

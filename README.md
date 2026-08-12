@@ -4,7 +4,7 @@ Repositório da **Fase 3 (Pós-Graduação FIAP / GearFlow)** responsável pelo 
 
 Este é o **Repo 1** da divisão da arquitetura. A lógica que hoje vive no monorepo legado ([gearflow-legado](https://github.com/Gearflow-Fiap/gearflow-legado)) — especialmente `AuthController` e os use cases de login — será extraída e redistribuída em **três funções serverless independentes**.
 
-> **Status atual:** repositório em bootstrap (documentação e planejamento). O código das functions e o Terraform ainda serão implementados.
+> **Status atual:** estrutura do projeto criada (3 Lambdas .NET 8, `shared/db`, Terraform e script de publish). A integração real com o banco (Repo 3) ainda usa stub.
 
 ---
 
@@ -56,18 +56,25 @@ Há **um `Function` + `FunctionHandler` por Lambda** (três vezes no total), nã
 
 ---
 
-## Estrutura alvo do repositório
+## Estrutura do repositório
 
 ```text
 gearflow-lambda/
+├── GearFlow.Lambda.slnx
 ├── functions/
-│   ├── validate-cpf/          # Lambda 1 – validação de CPF
-│   ├── check-client/          # Lambda 2 – consulta de cliente
+│   ├── validate-cpf/          # Lambda 1 – validação de CPF (CpfValidator + Function)
+│   ├── check-client/          # Lambda 2 – consulta de cliente (usa shared/db)
 │   └── generate-token/        # Lambda 3 – geração de JWT
 ├── shared/
-│   └── db/                    # Conexão readonly com o banco (Repo 3)
+│   └── db/                    # IClientReadRepository + factory readonly (stub)
+├── events/                    # Payloads de exemplo (API Gateway HTTP API v2)
+├── scripts/
+│   └── publish-lambdas.ps1    # Gera artifacts/*.zip para o Terraform
 ├── terraform/
-│   └── functions.tf           # Lambdas, IAM, rotas API Gateway
+│   ├── functions.tf           # Lambdas, IAM, API Gateway, rotas
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── terraform.tfvars.example
 └── README.md
 ```
 
@@ -196,36 +203,27 @@ Este repositório **não** sobe a API ASP.NET completa do legado. Ele publica ap
 
 ---
 
-## Como desenvolver (plano)
+## Como desenvolver
 
-### 1. Criar a estrutura
-
-```text
-functions/validate-cpf
-functions/check-client
-functions/generate-token
-shared/db
-terraform/
+```bash
+# Restaurar e compilar
+dotnet restore GearFlow.Lambda.slnx
+dotnet build GearFlow.Lambda.slnx -c Release
 ```
 
-### 2. Extrair lógica do legado
+Handlers:
 
-- Copiar/adaptar `IsValidCpf` → `validate-cpf`
-- Extrair consulta de cliente do `LoginUserUseCase` → `check-client` + `shared/db`
-- Extrair geração JWT (`AuthTokenHelper` / `JwtSettings`) → `generate-token`
+| Projeto | Handler |
+|---|---|
+| `GearFlow.Lambda.ValidateCpf` | `GearFlow.Lambda.ValidateCpf::GearFlow.Lambda.ValidateCpf.Function::FunctionHandler` |
+| `GearFlow.Lambda.CheckClient` | `GearFlow.Lambda.CheckClient::GearFlow.Lambda.CheckClient.Function::FunctionHandler` |
+| `GearFlow.Lambda.GenerateToken` | `GearFlow.Lambda.GenerateToken::GearFlow.Lambda.GenerateToken.Function::FunctionHandler` |
 
-### 3. Empacotar cada Lambda
+Próximos passos de implementação:
 
-Cada function gera seu artefato (zip / publish) referenciado no Terraform.
-
-### 4. Provisionar infra
-
-Definir em `terraform/functions.tf`:
-
-- 3 resources `aws_lambda_function`
-- Role/policy IAM (execução + leitura no banco para `check-client`)
-- API Gateway + integrações/rotas
-- Variáveis de ambiente (`JWT_SIGNING_KEY`, connection string readonly, etc.)
+- Trocar `StubClientReadRepository` pela query readonly real (Repo 3)
+- Ajustar claims do JWT se o contrato do front exigir `security_stamp` / refresh token
+- (Opcional) VPC/SG no Terraform se o banco não for acessível publicamente
 
 ---
 
@@ -259,14 +257,18 @@ Cobrir pelo menos:
 
 ---
 
-## Como publicar na AWS (quando o Terraform existir)
+## Como publicar na AWS
 
-```bash
-# 1. Build dos artefatos das 3 functions
-# (comandos específicos por projeto .NET Lambda)
+```powershell
+# 1. Empacotar as 3 functions (gera artifacts/*.zip)
+.\scripts\publish-lambdas.ps1
 
-# 2. Infra
+# 2. Configurar variáveis
 cd terraform
+copy terraform.tfvars.example terraform.tfvars
+# edite terraform.tfvars (jwt_signing_key, db_connection_string, etc.)
+
+# 3. Infra
 terraform init
 terraform plan
 terraform apply
@@ -369,12 +371,13 @@ Serão fechados na implementação; abaixo um ponto de partida.
 ## Roadmap de implementação
 
 - [x] Documentar objetivo, arquitetura e mapa de migração (este README)
-- [ ] Criar esqueleto `functions/*`, `shared/db`, `terraform/`
-- [ ] Implementar `validate-cpf` a partir de `Cpf` + `IsValidCpf`
-- [ ] Implementar `check-client` + conexão readonly
-- [ ] Implementar `generate-token` com `JwtSettings` / assinatura HMAC
-- [ ] Terraform: Lambdas + API Gateway + outputs
-- [ ] Testes locais + smoke test na AWS
+- [x] Criar esqueleto `functions/*`, `shared/db`, `terraform/`
+- [x] Implementar `validate-cpf` a partir de `Cpf` + `IsValidCpf`
+- [x] Esqueleto `check-client` + `shared/db` (stub até Repo 3)
+- [x] Implementar `generate-token` com `JwtSettings` / assinatura HMAC
+- [x] Terraform: Lambdas + API Gateway + outputs
+- [ ] Integração real com banco readonly (Repo 3)
+- [ ] Testes automatizados + smoke test na AWS
 
 ---
 
