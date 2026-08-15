@@ -6,40 +6,22 @@ locals {
   }
 }
 
-data "aws_iam_policy_document" "lambda_assume_role" {
-  statement {
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-
-    actions = ["sts:AssumeRole"]
-  }
-}
-
-resource "aws_iam_role" "lambda_exec" {
-  name               = "${local.name_prefix}-auth-lambda-role"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda_exec.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+# AWS Academy Lab não permite criar IAM Roles — usa a LabRole pré-existente
+data "aws_iam_role" "lab_role" {
+  name = "LabRole"
 }
 
 # --- validate-cpf ---
 
 resource "aws_lambda_function" "validate_cpf" {
-  function_name = "${local.name_prefix}-validate-cpf"
-  role          = aws_iam_role.lambda_exec.arn
-  handler       = "GearFlow.Lambda.ValidateCpf::GearFlow.Lambda.ValidateCpf.Function::FunctionHandler"
-  runtime       = "dotnet8"
-  filename      = var.validate_cpf_zip_path
+  function_name    = "${local.name_prefix}-validate-cpf"
+  role             = data.aws_iam_role.lab_role.arn
+  handler          = "GearFlow.Lambda.ValidateCpf::GearFlow.Lambda.ValidateCpf.Function::FunctionHandler"
+  runtime          = "dotnet8"
+  filename         = var.validate_cpf_zip_path
   source_code_hash = filebase64sha256(var.validate_cpf_zip_path)
-  memory_size   = 256
-  timeout       = 30
+  memory_size      = 256
+  timeout          = 30
 
   environment {
     variables = local.lambda_env_common
@@ -49,14 +31,14 @@ resource "aws_lambda_function" "validate_cpf" {
 # --- check-client ---
 
 resource "aws_lambda_function" "check_client" {
-  function_name = "${local.name_prefix}-check-client"
-  role          = aws_iam_role.lambda_exec.arn
-  handler       = "GearFlow.Lambda.CheckClient::GearFlow.Lambda.CheckClient.Function::FunctionHandler"
-  runtime       = "dotnet8"
-  filename      = var.check_client_zip_path
+  function_name    = "${local.name_prefix}-check-client"
+  role             = data.aws_iam_role.lab_role.arn
+  handler          = "GearFlow.Lambda.CheckClient::GearFlow.Lambda.CheckClient.Function::FunctionHandler"
+  runtime          = "dotnet8"
+  filename         = var.check_client_zip_path
   source_code_hash = filebase64sha256(var.check_client_zip_path)
-  memory_size   = 256
-  timeout       = 30
+  memory_size      = 256
+  timeout          = 30
 
   environment {
     variables = merge(local.lambda_env_common, {
@@ -68,21 +50,21 @@ resource "aws_lambda_function" "check_client" {
 # --- generate-token ---
 
 resource "aws_lambda_function" "generate_token" {
-  function_name = "${local.name_prefix}-generate-token"
-  role          = aws_iam_role.lambda_exec.arn
-  handler       = "GearFlow.Lambda.GenerateToken::GearFlow.Lambda.GenerateToken.Function::FunctionHandler"
-  runtime       = "dotnet8"
-  filename      = var.generate_token_zip_path
+  function_name    = "${local.name_prefix}-generate-token"
+  role             = data.aws_iam_role.lab_role.arn
+  handler          = "GearFlow.Lambda.GenerateToken::GearFlow.Lambda.GenerateToken.Function::FunctionHandler"
+  runtime          = "dotnet8"
+  filename         = var.generate_token_zip_path
   source_code_hash = filebase64sha256(var.generate_token_zip_path)
-  memory_size   = 256
-  timeout       = 30
+  memory_size      = 256
+  timeout          = 30
 
   environment {
     variables = merge(local.lambda_env_common, {
-      JWT_SIGNING_KEY           = var.jwt_signing_key
-      JWT_ISSUER                = var.jwt_issuer
-      JWT_AUDIENCE              = var.jwt_audience
-      JWT_ACCESS_TOKEN_MINUTES  = tostring(var.jwt_access_token_minutes)
+      JWT_SIGNING_KEY          = var.jwt_signing_key
+      JWT_ISSUER               = var.jwt_issuer
+      JWT_AUDIENCE             = var.jwt_audience
+      JWT_ACCESS_TOKEN_MINUTES = tostring(var.jwt_access_token_minutes)
     })
   }
 }
