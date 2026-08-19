@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/functions/">
+    <Project Path="functions/validate-cpf/GearFlow.Lambda.ValidateCpf.csproj" />
+    <Project Path="functions/check-client/GearFlow.Lambda.CheckClient.csproj" />
+    <Project Path="functions/generate-token/GearFlow.Lambda.GenerateToken.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/db/GearFlow.Lambda.Shared.Db.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,16 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /auth/check-client",
+  "rawPath": "/auth/check-client",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/auth/check-client"
+    }
+  },
+  "body": "{\"cpf\":\"52998224725\"}",
+  "isBase64Encoded": false
+}

@@ -1,0 +1,12 @@
+{
+  "Information": [
+    "Handler apontado pelo Terraform: GearFlow.Lambda.CheckClient::GearFlow.Lambda.CheckClient.Function::FunctionHandler"
+  ],
+  "profile": "",
+  "region": "us-east-1",
+  "configuration": "Release",
+  "function-runtime": "dotnet8",
+  "function-memory-size": 256,
+  "function-timeout": 30,
+  "function-handler": "GearFlow.Lambda.CheckClient::GearFlow.Lambda.CheckClient.Function::FunctionHandler"
+}

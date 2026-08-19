@@ -1,0 +1,14 @@
+aws_region  = "us-east-1"
+project_name = "gearflow"
+environment  = "dev"
+
+jwt_signing_key          = "troque-por-uma-chave-secreta-longa"
+jwt_issuer               = "GearFlow.Api"
+jwt_audience             = "GearFlow.Client"
+jwt_access_token_minutes = 30
+
+db_connection_string = "Host=...;Database=...;Username=...;Password=..."
+
+validate_cpf_zip_path   = "../artifacts/validate-cpf.zip"
+check_client_zip_path   = "../artifacts/check-client.zip"
+generate_token_zip_path = "../artifacts/generate-token.zip"
