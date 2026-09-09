@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  DOTNET_NOLOGO: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore GearFlow.Lambda.slnx
+
+      - name: Build (Release)
+        run: dotnet build GearFlow.Lambda.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test GearFlow.Lambda.slnx -c Release --no-build --verbosity normal
+
+  security:
+    name: Security (vulnerable / deprecated deps)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore GearFlow.Lambda.slnx
+
+      - name: Vulnerable packages (fail on any)
+        run: |
+          dotnet list GearFlow.Lambda.slnx package --vulnerable --include-transitive > vulnerable.txt 2>&1 || true
+          cat vulnerable.txt
+          if grep -qiE 'has the following vulnerable packages' vulnerable.txt; then
+            echo "::error::Dependências vulneráveis encontradas — veja o log acima."
+            exit 1
+          fi
+          echo "Sem pacotes vulneráveis." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deprecated packages (report only)
+        if: always()
+        run: |
+          {
+            echo "### Pacotes deprecados"
+            echo '```'
+            dotnet list GearFlow.Lambda.slnx package --deprecated 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
