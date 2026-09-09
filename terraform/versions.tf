@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.5.0"
 
   cloud {
-    organization = "gearflowfiap"
+    organization = "gearflowfiapmurilo"
 
     workspaces {
       name = "gearflow-lambda"
