@@ -21,6 +21,7 @@ jobs:
   plan:
     name: terraform plan
     runs-on: ubuntu-latest
+    environment: production
 
     defaults:
       run:

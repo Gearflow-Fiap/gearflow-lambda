@@ -293,7 +293,7 @@ Merge → main
 
 Plan e apply rodam em **Execution Mode = Local**: o Terraform executa no runner do GitHub e usa os secrets da Actions.
 
-Configure em **Settings → Secrets and variables → Actions**. Crie também o environment **`production`** (usado pelo apply).
+Configure em **Settings → Secrets and variables → Actions**. Crie também o environment **`production`** (usado pelo plan e pelo apply).
 
 **Secrets**
 
