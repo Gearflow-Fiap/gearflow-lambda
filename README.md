@@ -69,12 +69,21 @@ gearflow-lambda/
 │   └── db/                    # IClientReadRepository + factory readonly (stub)
 ├── events/                    # Payloads de exemplo (API Gateway HTTP API v2)
 ├── scripts/
-│   └── publish-lambdas.ps1    # Gera artifacts/*.zip para o Terraform
+│   ├── publish-lambdas.ps1    # Gera artifacts/*.zip (local / Windows)
+│   └── publish-lambdas.sh     # Gera artifacts/*.zip (CI / Linux)
 ├── terraform/
 │   ├── functions.tf           # Lambdas, IAM, API Gateway, rotas
+│   ├── versions.tf            # Backend Terraform Cloud (workspace gearflow-lambda)
 │   ├── variables.tf
 │   ├── outputs.tf
 │   └── terraform.tfvars.example
+├── .github/
+│   ├── dependabot.yml
+│   └── workflows/
+│       ├── ci.yml                 # Build + security (.NET)
+│       ├── codeql.yml             # SAST C#
+│       ├── terraform-plan.yml     # Plan no PR
+│       └── terraform-apply.yml    # Apply no merge em main
 └── README.md
 ```
 
@@ -257,11 +266,80 @@ Cobrir pelo menos:
 
 ---
 
+## CI/CD
+
+Esteira alinhada ao `gearflow-app` (CI .NET) e ao `gearflow-infra-k8s` (Terraform plan/apply).
+
+| Workflow | Dispara em | O que faz |
+|---|---|---|
+| `ci.yml` | push/PR em `main`,`develop` | Build Release + `dotnet test` + gate de deps vulneráveis |
+| `codeql.yml` | push/PR em `main`,`develop` + semanal | SAST C# (CodeQL) |
+| `terraform-plan.yml` | PR em `main` (paths de código/infra) | Publica zips → AWS creds → init/validate/plan → comenta no PR |
+| `terraform-apply.yml` | push em `main` (mesmos paths) | Publica zips → AWS creds → apply (`environment: production`) |
+| `dependabot.yml` | agendado | PRs de NuGet + GitHub Actions |
+
+```
+PR → main
+  ├─ CI (build + security)
+  ├─ CodeQL
+  └─ Terraform Plan  (publish zips → plan)
+
+Merge → main
+  ├─ CI + CodeQL
+  └─ Terraform Apply (publish zips → apply)
+```
+
+### Secrets e variables (GitHub Actions)
+
+Plan e apply rodam em **Execution Mode = Local**: o Terraform executa no runner do GitHub e usa os secrets da Actions.
+
+Configure em **Settings → Secrets and variables → Actions**. Crie também o environment **`production`** (usado pelo plan e pelo apply).
+
+**Secrets**
+
+| Nome | Uso |
+|---|---|
+| `TF_API_TOKEN` | Terraform Cloud (state / workspace `gearflow-lambda`) |
+| `AWS_ACCESS_KEY_ID` | Credencial AWS (plan + apply) |
+| `AWS_SECRET_ACCESS_KEY` | Credencial AWS (plan + apply) |
+| `AWS_SESSION_TOKEN` | Obrigatório se a key for temporária (AWS Academy / SSO); senão pode omitir |
+| `JWT_SIGNING_KEY` | `TF_VAR_jwt_signing_key` (Lambda generate-token) |
+| `DB_CONNECTION_STRING` | `TF_VAR_db_connection_string` (Lambda check-client; pode vazio enquanto stub) |
+
+**Variables**
+
+| Nome | Exemplo |
+|---|---|
+| `AWS_REGION` | `us-east-1` |
+
+> `The security token included in the request is invalid` = Access Key / Secret errados ou expirados, **ou** key temporária sem `AWS_SESSION_TOKEN`. Renove as credenciais do lab e atualize os três secrets AWS.
+
+Após o primeiro apply, copie os outputs `validate_cpf_url`, `check_client_url` e `generate_token_url` para as variables `LAMBDA_*_URL` do `gearflow-infra-k8s`.
+
+### Pré-requisito Terraform Cloud
+
+Workspace `gearflow-lambda` na organização de `terraform/versions.tf`, com **Execution Mode = Local**:
+
+1. Abra o workspace no [HCP Terraform](https://app.terraform.io)
+2. **Settings → General → Execution Mode → Local → Save**
+
+O state continua no TFC; plan/apply rodam no GitHub Actions com as credenciais AWS dos secrets. Se o modo ficar **Remote**, o plan ignora os secrets do GitHub e falha com `No valid credential sources found`.
+
+---
+
 ## Como publicar na AWS
+
+### Via CI/CD (fluxo normal)
+
+1. Abrir PR para `main` → `ci.yml` + `codeql.yml` + `terraform-plan.yml`
+2. Após aprovação e merge → `terraform-apply.yml` aplica as Lambdas/API Gateway
+
+### Manual (local)
 
 ```powershell
 # 1. Empacotar as 3 functions (gera artifacts/*.zip)
 .\scripts\publish-lambdas.ps1
+# Linux/CI: bash scripts/publish-lambdas.sh
 
 # 2. Configurar variáveis
 cd terraform
@@ -285,12 +363,12 @@ Depois do apply:
 | Nome (exemplo) | Usado por | Descrição |
 |---|---|---|
 | `JWT_SIGNING_KEY` | `generate-token` | Chave HMAC (equivalente a `Jwt:SigningKey`) |
-| `JWT_ISSUER` | `generate-token` | Issuer (default legado: `GearFlow.Api`) |
-| `JWT_AUDIENCE` | `generate-token` | Audience (default legado: `GearFlow.Client`) |
+| `JWT_ISSUER` | `generate-token` | Issuer (default: `GearFlow.Api`) |
+| `JWT_AUDIENCE` | `generate-token` | Audience (default: `GearFlow.Client`) |
 | `JWT_ACCESS_TOKEN_MINUTES` | `generate-token` | Tempo de vida do access token |
 | `DB_CONNECTION_STRING` | `check-client` | Connection string **readonly** (Repo 3) |
 
-Secrets não devem ir commitados no repositório; usar variáveis de ambiente, AWS Secrets Manager ou Terraform variables sensíveis.
+Secrets não devem ir commitados no repositório; usar GitHub Secrets, AWS Secrets Manager ou Terraform variables sensíveis.
 
 ---
 
@@ -376,6 +454,7 @@ Serão fechados na implementação; abaixo um ponto de partida.
 - [x] Esqueleto `check-client` + `shared/db` (stub até Repo 3)
 - [x] Implementar `generate-token` com `JwtSettings` / assinatura HMAC
 - [x] Terraform: Lambdas + API Gateway + outputs
+- [x] CI/CD (GitHub Actions: build, security, CodeQL, Terraform plan/apply)
 - [ ] Integração real com banco readonly (Repo 3)
 - [ ] Testes automatizados + smoke test na AWS
 
