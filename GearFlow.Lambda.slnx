@@ -7,4 +7,7 @@
   <Folder Name="/shared/">
     <Project Path="shared/db/GearFlow.Lambda.Shared.Db.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GearFlow.Lambda.Tests/GearFlow.Lambda.Tests.csproj" />
+  </Folder>
 </Solution>

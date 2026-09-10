@@ -44,6 +44,28 @@ variable "db_connection_string" {
   default     = ""
 }
 
+# --- Conectividade privada com o RDS (gearflow-infra-database) ---
+# Plumbados manualmente a partir dos outputs daquele repo, seguindo o mesmo
+# padrão do db_connection_string acima (não há remote state cross-repo hoje).
+
+variable "lambda_vpc_id" {
+  description = "ID da VPC do banco (output database_vpc_id em gearflow-infra-database), onde a Lambda check-client roda para acessar o RDS pela rede privada."
+  type        = string
+  default     = ""
+}
+
+variable "lambda_vpc_subnet_ids" {
+  description = "IDs das subnets privadas do RDS (output database_private_subnet_ids em gearflow-infra-database) usadas no vpc_config da Lambda check-client."
+  type        = list(string)
+  default     = []
+}
+
+variable "database_security_group_id" {
+  description = "ID do security group do RDS (output database_security_group_id em gearflow-infra-database), usado para autorizar apenas a Lambda a alcançar a porta 1433."
+  type        = string
+  default     = ""
+}
+
 variable "validate_cpf_zip_path" {
   description = "Caminho do zip publicado da Lambda validate-cpf"
   type        = string

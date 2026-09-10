@@ -6,7 +6,12 @@ locals {
   }
 }
 
-# AWS Academy Lab não permite criar IAM Roles — usa a LabRole pré-existente
+# AWS Academy Lab não permite criar IAM Roles — usa a LabRole pré-existente.
+# check-client entra em vpc_config (ver abaixo), o que exige que essa role já
+# tenha a policy equivalente a AWSLambdaVPCAccessExecutionRole (ec2:CreateNetworkInterface
+# etc.); a LabRole do Academy Lab normalmente já inclui isso. Como não podemos
+# criar/anexar policies aqui, se o deploy falhar por permissão de ENI, ajuste a
+# role manualmente no console do Lab.
 data "aws_iam_role" "lab_role" {
   name = "LabRole"
 }
@@ -44,6 +49,15 @@ resource "aws_lambda_function" "check_client" {
     variables = merge(local.lambda_env_common, {
       DB_CONNECTION_STRING = var.db_connection_string
     })
+  }
+
+  # Roda na VPC privada do RDS (gearflow-infra-database) para consultar
+  # customers.clients sem expor o banco publicamente. Requer NAT Gateway (ou
+  # VPC endpoints) nessa VPC para a Lambda continuar acessando outros serviços
+  # AWS (ex.: CloudWatch Logs) — ver gearflow-infra-database/terraform/network.tf.
+  vpc_config {
+    subnet_ids         = var.lambda_vpc_subnet_ids
+    security_group_ids = [aws_security_group.check_client_lambda.id]
   }
 }
 

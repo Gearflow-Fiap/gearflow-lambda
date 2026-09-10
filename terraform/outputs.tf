@@ -22,3 +22,8 @@ output "lambda_function_names" {
     generate_token = aws_lambda_function.generate_token.function_name
   }
 }
+
+output "check_client_lambda_security_group_id" {
+  description = "ID do security group da Lambda check-client. Alimenta allowed_security_group_ids em gearflow-infra-database para liberar só esta Lambda no RDS."
+  value       = aws_security_group.check_client_lambda.id
+}
