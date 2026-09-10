@@ -313,7 +313,9 @@ Após o primeiro apply, copie os outputs `validate_cpf_url`, `check_client_url` 
 
 ### Pré-requisito Terraform Cloud
 
-Workspace `gearflow-lambda` na organização `gearflowfiap`, com **Execution Mode = Local** (o apply roda no GitHub Actions; o state fica no TFC).
+Workspace `gearflow-lambda` na organização configurada em `terraform/versions.tf`, com **Execution Mode = Local** (plan/apply rodam no GitHub Actions com as credenciais AWS dos secrets; o state fica no TFC).
+
+> Se o modo estiver **Remote**, o plan roda nos agents do HCP Terraform e **não** enxerga `AWS_ACCESS_KEY_ID` do GitHub — aí o provider AWS falha com `No valid credential sources found`. Troque para **Local** em *Settings → General → Execution Mode*.
 
 ---
 
