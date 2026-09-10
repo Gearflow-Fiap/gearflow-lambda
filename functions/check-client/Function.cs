@@ -19,7 +19,7 @@ public class Function
     private readonly IClientReadRepository _clientReadRepository;
 
     public Function()
-        : this(new StubClientReadRepository())
+        : this(CreateDefaultRepository())
     {
     }
 
@@ -77,6 +77,14 @@ public class Function
             context.Logger.LogError($"Erro inesperado: {ex}");
             return Response(HttpStatusCode.InternalServerError, new { message = "Erro interno." });
         }
+    }
+
+    private static IClientReadRepository CreateDefaultRepository()
+    {
+        var connectionFactory = new ReadonlyDbConnectionFactory();
+        return connectionFactory.IsConfigured
+            ? new SqlClientReadRepository(connectionFactory.ConnectionString)
+            : new StubClientReadRepository();
     }
 
     private static string OnlyNumbers(string? src)

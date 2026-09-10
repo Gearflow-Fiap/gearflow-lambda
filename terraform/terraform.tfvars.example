@@ -9,6 +9,12 @@ jwt_access_token_minutes = 30
 
 db_connection_string = "Host=...;Database=...;Username=...;Password=..."
 
+# Copiados dos outputs de gearflow-infra-database após o apply daquele repo
+# (database_vpc_id, database_private_subnet_ids, database_security_group_id).
+lambda_vpc_id               = ""
+lambda_vpc_subnet_ids       = []
+database_security_group_id = ""
+
 validate_cpf_zip_path   = "../artifacts/validate-cpf.zip"
 check_client_zip_path   = "../artifacts/check-client.zip"
 generate_token_zip_path = "../artifacts/generate-token.zip"
