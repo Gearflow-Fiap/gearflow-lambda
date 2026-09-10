@@ -291,15 +291,17 @@ Merge → main
 
 ### Secrets e variables (GitHub Actions)
 
+Igual ao `gearflow-infra-k8s`: o **plan não configura AWS no runner** — só o **apply** usa `configure-aws-credentials`.
+
 Configure em **Settings → Secrets and variables → Actions**. Crie também o environment **`production`** (usado pelo apply).
 
 **Secrets**
 
 | Nome | Uso |
 |---|---|
-| `TF_API_TOKEN` | Terraform Cloud (org `gearflowfiap`, workspace `gearflow-lambda`) |
-| `AWS_ACCESS_KEY_ID` | Credencial AWS no apply |
-| `AWS_SECRET_ACCESS_KEY` | Credencial AWS no apply |
+| `TF_API_TOKEN` | Terraform Cloud (workspace `gearflow-lambda`) |
+| `AWS_ACCESS_KEY_ID` | Credencial AWS no **apply** |
+| `AWS_SECRET_ACCESS_KEY` | Credencial AWS no **apply** |
 | `JWT_SIGNING_KEY` | `TF_VAR_jwt_signing_key` (Lambda generate-token) |
 | `DB_CONNECTION_STRING` | `TF_VAR_db_connection_string` (Lambda check-client; pode vazio enquanto stub) |
 
@@ -309,13 +311,23 @@ Configure em **Settings → Secrets and variables → Actions**. Crie também o 
 |---|---|
 | `AWS_REGION` | `us-east-1` |
 
+> `The security token included in the request is invalid` = Access Key / Secret errados ou expirados. Se a conta for **AWS Academy**, a key é temporária: no HCP (e no `aws configure` local) use também `AWS_SESSION_TOKEN` renovado a cada lab.
+
 Após o primeiro apply, copie os outputs `validate_cpf_url`, `check_client_url` e `generate_token_url` para as variables `LAMBDA_*_URL` do `gearflow-infra-k8s`.
 
 ### Pré-requisito Terraform Cloud
 
-Workspace `gearflow-lambda` na organização configurada em `terraform/versions.tf`, com **Execution Mode = Local** (plan/apply rodam no GitHub Actions com as credenciais AWS dos secrets; o state fica no TFC).
+Workspace `gearflow-lambda` na organização de `terraform/versions.tf`.
 
-> Se o modo estiver **Remote**, o plan roda nos agents do HCP Terraform e **não** enxerga `AWS_ACCESS_KEY_ID` do GitHub — aí o provider AWS falha com `No valid credential sources found`. Troque para **Local** em *Settings → General → Execution Mode*.
+Como o **plan** espelha o k8s (sem AWS no GitHub Actions), se o Execution Mode for **Remote** configure no workspace HCP (*Variables → Environment variables*, sensíveis):
+
+| Env var no HCP | Valor |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | mesma key AWS |
+| `AWS_SECRET_ACCESS_KEY` | mesmo secret |
+| `AWS_SESSION_TOKEN` | se a credencial for temporária |
+
+Sem isso o plan remoto falha com `No valid credential sources found`.
 
 ---
 
